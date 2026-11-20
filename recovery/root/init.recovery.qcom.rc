@@ -71,6 +71,8 @@ on init
 
 on boot
     setprop sys.usb.config adb
+    chown root wakelock /sys/power/wake_lock
+    chown root wakelock /sys/power/wake_unlock
     chmod 0664 /sys/power/wake_lock
     chmod 0664 /sys/power/wake_unlock
 
@@ -127,6 +129,7 @@ service aera-gpu-ready /system/bin/sh /system/bin/aera_gpu_ready.sh
 # Smart Transmit license checks succeed for cellular MPSS, and load Adreno
 # KGSL (/dev/kgsl-3d0) for sandboxed plugins such as AERA Browser.
 on property:post.decrypt.modules=true && property:aera.ramdisk.ready=1
-    mkdir /data/vendor/qwes 0755 root system
+    mkdir /data/vendor/qwes 0755 system system
+    chown system system /data/vendor/qwes
     restart vendor.ssgtzd
     start aera-gpu-ready
