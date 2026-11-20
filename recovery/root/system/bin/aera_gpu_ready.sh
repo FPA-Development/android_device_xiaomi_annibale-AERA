@@ -52,46 +52,55 @@ fi
 
 slot="$(prop ro.boot.slot_suffix)"
 
-# 1. Stage gen80000* GPU firmware from installed active-slot /vendor/firmware
-#    and /firmware/image into /lib/firmware, /vendor/firmware, and
+# 1. Stage gen80000* GPU firmware from installed active-slot /vendor/firmware,
+#    /odm/firmware (where gen80000_zap.mbn resides on annibale), and
+#    /firmware/image into /lib/firmware, /vendor/firmware, and
 #    /system/etc/firmware (RAM only; covers both direct kernel and ueventd lookup).
 mkdir -p /lib/firmware /vendor/firmware /system/etc/firmware
 
-if [ ! -e /system/etc/firmware/gen80000_sqe.fw ] || [ ! -e /lib/firmware/gen80000_sqe.fw ]; then
-    ven_part=""
+stage_part_fw() {
+    part_name="$1"
+    part_dev=""
     for cand in \
-        "/dev/block/mapper/vendor${slot}" \
-        "/dev/block/bootdevice/by-name/vendor${slot}" \
-        "/dev/block/bootdevice/by-name/vendor"; do
+        "/dev/block/mapper/${part_name}${slot}" \
+        "/dev/block/bootdevice/by-name/${part_name}${slot}" \
+        "/dev/block/bootdevice/by-name/${part_name}"; do
         if [ -b "$cand" ]; then
-            ven_part="$cand"
+            part_dev="$cand"
             break
         fi
     done
 
-    tmp_ven="/tmp/aera-vendor-gpu-fw"
-    if [ -n "$ven_part" ]; then
-        mkdir -p "$tmp_ven"
-        if mount_ro "$ven_part" "$tmp_ven"; then
-            copied=0
-            for fw in "$tmp_ven"/firmware/gen8* "$tmp_ven"/firmware/a8*; do
-                [ -f "$fw" ] || continue
-                base="${fw##*/}"
-                cp -f "$fw" "/lib/firmware/$base" 2>> "$LOG" || true
-                cp -f "$fw" "/vendor/firmware/$base" 2>> "$LOG" || true
-                cp -f "$fw" "/system/etc/firmware/$base" 2>> "$LOG" || true
-                copied=$((copied + 1))
-            done
-            umount "$tmp_ven" 2>> "$LOG" || umount -l "$tmp_ven" 2>> "$LOG" || true
-            rmdir "$tmp_ven" 2>/dev/null || true
-            log "Staged $copied GPU firmware file(s) from $ven_part"
-        else
-            rmdir "$tmp_ven" 2>/dev/null || true
-            log "Could not mount $ven_part read-only for GPU firmware"
-        fi
-    else
-        log "No vendor block device found for GPU firmware staging"
+    if [ -z "$part_dev" ]; then
+        log "No ${part_name} block device found for GPU firmware staging"
+        return 0
     fi
+
+    tmp_mp="/tmp/aera-${part_name}-gpu-fw"
+    mkdir -p "$tmp_mp"
+    if mount_ro "$part_dev" "$tmp_mp"; then
+        copied=0
+        for fw in "$tmp_mp"/firmware/gen8* "$tmp_mp"/firmware/a8*; do
+            [ -f "$fw" ] || continue
+            base="${fw##*/}"
+            cp -f "$fw" "/lib/firmware/$base" 2>> "$LOG" || true
+            cp -f "$fw" "/vendor/firmware/$base" 2>> "$LOG" || true
+            cp -f "$fw" "/system/etc/firmware/$base" 2>> "$LOG" || true
+            chmod 0644 "/lib/firmware/$base" "/vendor/firmware/$base" "/system/etc/firmware/$base" 2>/dev/null || true
+            copied=$((copied + 1))
+        done
+        umount "$tmp_mp" 2>> "$LOG" || umount -l "$tmp_mp" 2>> "$LOG" || true
+        rmdir "$tmp_mp" 2>/dev/null || true
+        log "Staged $copied GPU firmware file(s) from $part_dev"
+    else
+        rmdir "$tmp_mp" 2>/dev/null || true
+        log "Could not mount $part_dev read-only for GPU firmware"
+    fi
+}
+
+if [ ! -e /system/etc/firmware/gen80000_sqe.fw ] || [ ! -e /system/etc/firmware/gen80000_zap.mbn ]; then
+    stage_part_fw vendor
+    stage_part_fw odm
 fi
 
 # Also link any gen8* zap trustlet files from /firmware/image if present
