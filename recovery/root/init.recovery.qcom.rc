@@ -25,10 +25,22 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import /init.recovery.prepdecrypt.rc
+
+# Release temporary stock /vendor and /odm overlays as soon as module loading
+# finishes so all recovery HALs execute from the recovery ramdisk instead of
+# the installed ROM's /vendor partition (which would pin /vendor busy and crash
+# crypto HALs).
+service aera-restore-ramdisk /system/bin/sh -c "while grep -q '^/dev/block/.* /odm ' /proc/mounts; do umount -l /odm || exit 1; done; while grep -q '^/dev/block/.* /vendor ' /proc/mounts; do umount -l /vendor || exit 1; done; echo 'AERA: early vendor/odm overlay cleanup complete' > /dev/kmsg; setprop aera.ramdisk.ready 1"
+    user root
+    group root
+    disabled
+    oneshot
+    seclabel u:r:recovery:s0
+
 on early-init
     wait /sys/fs/selinux/enforce
     write /sys/fs/selinux/enforce 0
-    start vendor.gatekeeper_default
 
 on early-fs
     write /proc/sys/walt/sched_lib_name "recovery,magiskboot,Updater,updater,update_engine_sideload"
@@ -53,34 +65,41 @@ on init
     start vendor.boot-qti
     setprop prepdecrypt.setpatch true
 
-# Workaround for HyperOS ROMs where 'crypto.ready' isn't set early enough by
-# prepdecrypt.sh (causing decryption failure on flashed recovery while working
-# on hot-booted recovery).
-on property:prepdecrypt.vendor_mounted=1
-    setprop crypto.ready 1
-
 on boot
     setprop sys.usb.config adb
 
 on property:twrp.modules.loaded=true
-    # Mount modem firmware outside /vendor so recovery's packaged eSE trustlets
-    # in /vendor/firmware_mnt stay intact.
-    mkdir /firmware 0755 root root
-    mount vfat /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro
-    # Load ADSP firmware for PMIC and USB-OTG
-    wait /sys/kernel/boot_adsp/boot
+    # Unmount temporary stock /vendor & /odm before starting any vendor HAL.
+    start aera-restore-ramdisk
+
+on property:aera.ramdisk.ready=1
+    # Ensure SSD partition node is ready for qseecomd's SSD listener.
+    wait /dev/block/bootdevice/by-name/ssd 10
+    start vendor.qseecomd
+    # Mount modem firmware outside /vendor so packaged eSE trustlets in
+    # /vendor/firmware_mnt stay intact.
+    mkdir /firmware 0755 root shell
+    mount vfat /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337
+    # Prepare OS/SPL version properties and link remaining modem firmware.
+    start prepdecrypt.vendor
+    # Load ADSP firmware for PMIC and USB-OTG.
+    wait /sys/kernel/boot_adsp/boot 5
     write /sys/kernel/boot_adsp/boot 1
     wait /sys/kernel/boot_adsp/ssr 2
     write /sys/kernel/boot_adsp/ssr 1
     wait /sys/class/power_supply/battery 2
-    start vendor.qseecomd
     start vendor.health-recovery
     start vibratorfeature-hal-service
-    umount /firmware
+    start touch_report
 
-on property:ro.crypto.state=encrypted && property:ro.boot.dynamic_partitions=true
-    start prepdecrypt.vendor
-
-on property:vendor.sys.listeners.registered=true
+on property:vendor.sys.listeners.registered=true && property:aera.ramdisk.ready=1
     start vendor.ssgtzd
+    start vendor.gatekeeper_default
+
+# Start eSE, Weaver, KeyMint TEE, and StrongBox only after ramdisk /vendor is
+# restored, QSEE listeners are up, and prepdecrypt has updated OS/SPL props.
+on property:vendor.sys.listeners.registered=true && property:crypto.ready=1 && property:aera.ramdisk.ready=1
+    start vendor.secure_element
+    start vendor.weaver_nxp
     start vendor.keymint-qti
+    start vendor.keymint-strongbox
