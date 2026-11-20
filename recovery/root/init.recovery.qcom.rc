@@ -96,7 +96,6 @@ on property:aera.ramdisk.ready=1
     wait /sys/kernel/boot_adsp/ssr 2
     write /sys/kernel/boot_adsp/ssr 1
     wait /sys/class/power_supply/battery 2
-    start vibratorfeature-hal-service
     start aera-otg-watch
 
 on property:crypto.ready=1 && property:aera.ramdisk.ready=1
