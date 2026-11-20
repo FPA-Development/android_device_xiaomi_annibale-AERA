@@ -37,9 +37,9 @@ optimize_io_and_cpu() {
 
     for dev in /sys/block/dm-* /sys/block/loop*; do
         if [ -d "$dev/queue" ]; then
-            echo 2048 > "$dev/queue/read_ahead_kb" 2>/dev/null
-            echo 512 > "$dev/queue/nr_requests" 2>/dev/null
-            echo 0 > "$dev/queue/iostats" 2>/dev/null
+            [ -w "$dev/queue/read_ahead_kb" ] && echo 2048 > "$dev/queue/read_ahead_kb" 2>/dev/null
+            [ -w "$dev/queue/nr_requests" ] && echo 512 > "$dev/queue/nr_requests" 2>/dev/null
+            [ -w "$dev/queue/iostats" ] && echo 0 > "$dev/queue/iostats" 2>/dev/null
         fi
     done
 
