@@ -81,9 +81,6 @@ on property:twrp.modules.loaded=true
     start aera-restore-ramdisk
 
 on property:aera.ramdisk.ready=1
-    # Ensure SSD partition node is ready for qseecomd's SSD listener.
-    wait /dev/block/bootdevice/by-name/ssd 10
-    start vendor.qseecomd
     # Mount modem firmware outside /vendor so packaged eSE trustlets in
     # /vendor/firmware_mnt stay intact.
     mkdir /firmware 0755 root shell
@@ -98,19 +95,23 @@ on property:aera.ramdisk.ready=1
     wait /sys/class/power_supply/battery 2
     start aera-otg-watch
 
+on property:aera.prepdecrypt.done=1 && property:aera.ramdisk.ready=1
+    # Start qseecomd only after prepdecrypt has restored ramdisk /vendor and set
+    # OS/SPL properties, preventing a race with temporary stock /vendor (dm-5).
+    wait /dev/block/bootdevice/by-name/ssd 10
+    start vendor.qseecomd
+
 on property:crypto.ready=1 && property:aera.ramdisk.ready=1
-    # Start after prepdecrypt finishes restoring /vendor so neither Keymaster_Ver
-    # nor module loading can overlay /vendor with ENOENT.
+    # Ensure health and touch_report always start even if QSEE listeners time out.
     start vendor.health-recovery
     start touch_report
 
-on property:vendor.sys.listeners.registered=true && property:aera.ramdisk.ready=1
+# Start QSEE/eSE/Weaver/KeyMint HALs as soon as QSEE listeners are up and
+# prepdecrypt has updated OS/SPL props, before crypto.ready=1 triggers
+# boot-time default_password auto-decrypt.
+on property:vendor.sys.listeners.registered=true && property:aera.prepdecrypt.done=1 && property:aera.ramdisk.ready=1
     start vendor.ssgtzd
     start vendor.gatekeeper_default
-
-# Start eSE, Weaver, KeyMint TEE, and StrongBox only after ramdisk /vendor is
-# restored, QSEE listeners are up, and prepdecrypt has updated OS/SPL props.
-on property:vendor.sys.listeners.registered=true && property:crypto.ready=1 && property:aera.ramdisk.ready=1
     start vendor.secure_element
     start vendor.weaver_nxp
     start vendor.keymint-qti

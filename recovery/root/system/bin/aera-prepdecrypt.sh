@@ -95,10 +95,29 @@ cleanup_temp_mounts()
 	fi
 }
 
+wait_for_crypto_hals()
+{
+	setprop aera.prepdecrypt.done 1
+	waited=0
+	while [ "$waited" -lt 40 ]; do
+		if [ "$(getprop vendor.sys.listeners.registered)" = "true" ]; then
+			# Give KeyMint/Gatekeeper/eSE/Weaver a moment to register in servicemanager
+			sleep 1
+			log_print 1 "QSEE listeners ready after $((waited * 200))ms."
+			return 0
+		fi
+		sleep 0.2
+		waited=$((waited + 1))
+	done
+	log_print 0 "Timed out waiting for vendor.sys.listeners.registered; continuing."
+	return 1
+}
+
 finish()
 {
 	cleanup_temp_mounts
 	restore_ramdisk_overlays
+	wait_for_crypto_hals
 	setprop crypto.ready 1
 	log_print 1 "crypto.ready=$(getprop crypto.ready)"
 	log_print 1 "Script complete. Device ready for decryption."
@@ -109,6 +128,7 @@ finish_error()
 {
 	cleanup_temp_mounts
 	restore_ramdisk_overlays
+	wait_for_crypto_hals
 	setprop crypto.ready 1
 	log_print 0 "Script run incomplete. Proceeding with default recovery props."
 	exit 2
