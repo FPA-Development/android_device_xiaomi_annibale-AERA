@@ -183,6 +183,7 @@ endif
 # Modules, thermal, and battery
 AERA_USE_SERIALNO_PROPERTY_FOR_DEVICE_ID := true
 AERA_LOAD_VENDOR_MODULES := "adsp_loader_dlkm.ko goodix_core.ko goodix_ts.ko nxp-nci.ko qti_battery_charger.ko xiaomi_touch.ko"
+AERA_POST_DECRYPT_MODULES := "smem-mailbox.ko cnss_prealloc.ko cnss_nl.ko wlan_firmware_service.ko cnss_plat_ipc_qmi_svc.ko cnss_utils.ko cnss2.ko gsim.ko rmnet_mem.ko ipam.ko rfkill.ko cfg80211.ko qca_cld3_kiwi_v2.ko qca_cld3_peach_v2.ko"
 AERA_LOAD_VENDOR_MODULES_EXCLUDE_GKI := true
 AERA_CUSTOM_CPU_TEMP_PATH := "/sys/class/thermal/thermal_zone48/temp"
 AERA_BATTERY_SYSFS_WAIT_SECONDS := 6

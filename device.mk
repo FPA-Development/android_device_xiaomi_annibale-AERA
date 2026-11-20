@@ -30,6 +30,10 @@ PRODUCT_PACKAGES += \
     lpmake \
     lpunpack
 
+ifeq ($(AERA_ENABLE_MOBILE_DATA),1)
+    PRODUCT_PACKAGES += aera-cellular-provider
+endif
+
 # OEM OTA certificate
 PRODUCT_EXTRA_RECOVERY_KEYS += \
     vendor/recovery/security/miui

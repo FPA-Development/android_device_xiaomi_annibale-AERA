@@ -66,7 +66,7 @@ restore_ramdisk_overlays()
 	if [ -d /firmware/image ]; then
 		mkdir -p /vendor/firmware_mnt/image
 		for firmware in /firmware/image/*; do
-			[ -f "$firmware" ] || continue
+			[ -e "$firmware" ] || continue
 			target="/vendor/firmware_mnt/image/${firmware##*/}"
 			[ -e "$target" ] || ln -s "$firmware" "$target"
 		done

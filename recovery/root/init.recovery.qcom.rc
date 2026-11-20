@@ -26,6 +26,8 @@
 #
 
 import /init.recovery.prepdecrypt.rc
+import /init.recovery.wifi.rc
+import /init.recovery.cellular.rc
 
 # Release temporary stock /vendor and /odm overlays as soon as module loading
 # finishes so all recovery HALs execute from the recovery ramdisk instead of

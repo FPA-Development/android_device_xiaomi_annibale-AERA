@@ -57,5 +57,6 @@ AERA_BLOCK_OPERATIONS_AFTER_ROM_FLASH := 1
 # Only ship root-provider modules matching annibale's GKI 6.6 kernel
 AERA_ROOT_MODULE_KERNELS := 6.6
 
-# Enable once annibale stock WLAN configs and CNSS/qca_cld3 modules are added
-# AERA_ENABLE_WLAN := 1
+# Enable Wi-Fi (SM8750 cnss-kiwi / kiwi_v2) and Mobile Data support
+AERA_ENABLE_WLAN := 1
+AERA_ENABLE_MOBILE_DATA ?= 1
