@@ -42,5 +42,6 @@
 /efsc                  emmc    /dev/block/bootdevice/by-name/fsc                                  flags=backup=1;subpartitionof=/efs1
 /efsg                  emmc    /dev/block/bootdevice/by-name/fsg                                  flags=backup=1;subpartitionof=/efs1
 
-# Removable storage (USB-OTG is dynamically discovered via sysfs in recovery.fstab)
+# Removable storage (/dev/block/aera_usb_otg is maintained by aera-otg-watch)
 /storage               auto    /data/media/0                                                      flags=display="Internal Storage";backup=1;usermrf;fsflags="bind,utf8";removable
+/usb_otg               auto    /dev/block/aera_usb_otg                                            flags=display="USB-OTG";storage;wipeingui;removable

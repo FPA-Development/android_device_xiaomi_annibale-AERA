@@ -97,6 +97,7 @@ on property:aera.ramdisk.ready=1
     write /sys/kernel/boot_adsp/ssr 1
     wait /sys/class/power_supply/battery 2
     start vibratorfeature-hal-service
+    start aera-otg-watch
 
 on property:crypto.ready=1 && property:aera.ramdisk.ready=1
     # Start after prepdecrypt finishes restoring /vendor so neither Keymaster_Ver
@@ -115,6 +116,13 @@ on property:vendor.sys.listeners.registered=true && property:crypto.ready=1 && p
     start vendor.weaver_nxp
     start vendor.keymint-qti
     start vendor.keymint-strongbox
+
+service aera-otg-watch /system/bin/sh /system/bin/aera_otg_watch.sh
+    class main
+    disabled
+    user root
+    group root
+    seclabel u:r:recovery:s0
 
 service aera-gpu-ready /system/bin/sh /system/bin/aera_gpu_ready.sh
     class core
