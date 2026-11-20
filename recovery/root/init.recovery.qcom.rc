@@ -114,8 +114,19 @@ on property:vendor.sys.listeners.registered=true && property:crypto.ready=1 && p
     start vendor.keymint-qti
     start vendor.keymint-strongbox
 
+service aera-gpu-ready /system/bin/sh /system/bin/aera_gpu_ready.sh
+    class core
+    disabled
+    oneshot
+    user root
+    group root
+    seclabel u:r:recovery:s0
+    stdio_to_kmsg
+
 # Restart ssgtzd/qwes once /data is decrypted so /data/vendor/qwes and PFM
-# Smart Transmit license checks succeed for cellular MPSS.
+# Smart Transmit license checks succeed for cellular MPSS, and load Adreno
+# KGSL (/dev/kgsl-3d0) for sandboxed plugins such as AERA Browser.
 on property:post.decrypt.modules=true && property:aera.ramdisk.ready=1
     mkdir /data/vendor/qwes 0755 root system
     restart vendor.ssgtzd
+    start aera-gpu-ready

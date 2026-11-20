@@ -24,8 +24,9 @@ $(call inherit-product, vendor/twrp/config/common.mk)
 # Device-specific AERA configuration
 $(call inherit-product, $(DEVICE_PATH)/aera_annibale.mk)
 
-# Dynamic partition tools
+# Dynamic partition tools and isolated plugin supervisor
 PRODUCT_PACKAGES += \
+    aera-browser-jail \
     lpflash \
     lpmake \
     lpunpack
