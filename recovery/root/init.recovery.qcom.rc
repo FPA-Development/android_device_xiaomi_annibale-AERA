@@ -71,6 +71,8 @@ on init
 
 on boot
     setprop sys.usb.config adb
+    chmod 0664 /sys/power/wake_lock
+    chmod 0664 /sys/power/wake_unlock
 
 on property:twrp.modules.loaded=true
     # Unmount temporary stock /vendor & /odm before starting any vendor HAL.
@@ -111,3 +113,9 @@ on property:vendor.sys.listeners.registered=true && property:crypto.ready=1 && p
     start vendor.weaver_nxp
     start vendor.keymint-qti
     start vendor.keymint-strongbox
+
+# Restart ssgtzd/qwes once /data is decrypted so /data/vendor/qwes and PFM
+# Smart Transmit license checks succeed for cellular MPSS.
+on property:post.decrypt.modules=true && property:aera.ramdisk.ready=1
+    mkdir /data/vendor/qwes 0755 root system
+    restart vendor.ssgtzd
