@@ -424,6 +424,12 @@ void Session::StartModem() {
   // Own the modem before the start request: even a partial start needs a
   // controlled stop before any helper or read-only firmware mount is freed.
   modem_owned=true;
+  // Enable remoteproc SSR recovery so a modem fatal error never panics or
+  // hard-locks the device while running in recovery.
+  if(Read(modem+"/recovery")=="disabled") {
+    if(Write(modem+"/recovery","enabled"))
+      Log("Enabled MSS remoteproc SSR recovery mode");
+  }
   Log("Requesting integrated MSS remoteproc startup");
   if(!Write(modem+"/state","start"))throw std::runtime_error("Cannot start the modem");
 }
